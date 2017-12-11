@@ -1,0 +1,302 @@
+#include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+using namespace std;
+
+/*整型栈的结构*/
+struct STACK{
+    int *elems;  //申请内存用于存放栈的元素
+    int max;        //咱能存放的最大元素个数
+    int pos;        //栈实际已有元素个数，栈空时pos=0
+};
+/*将文件名申明为全局变量*/
+FILE *file;
+/*整型栈功能函数申明*/
+void initSTACK(STACK *const p, int m);               //初始化p指向的栈
+void initSTACK(STACK *const p, const STACK &s);      //用栈s初始化p指向的栈
+int size(const STACK *const p);                      //返回p指向的栈的最大元素个数
+int howMany(const STACK *const p);                   //返回p指向的栈的实际元素个数pos
+int getelem(const STACK *const p, int x);            //取下标x处的栈元素
+STACK *const push(STACK *const p, int e);            //将e入栈，并返回p
+STACK *const pop(STACK *const p, int &e);            //出栈道e，并返回p
+STACK *const assign(STACK *const p, const STACK &s); //赋s给p
+void print(const STACK *const p);                    //打印p指向的栈
+void destroySTACK(STACK *const p);                   //校徽p指向的栈
+
+/*主函数*/
+int main(int argc, char **argv)
+{
+    int state = 0;   //入栈出错判断，0为正常，1为出错
+    int num;         //存放初始化需要的栈空间和出栈的数量
+    int element;     //存放输入的栈元素
+    int i;        //命令行计数器
+    int inistack = 0;//栈初始化判断，0为未初始，1为已经初始
+    STACK *const p = (STACK *const)malloc(sizeof(STACK));
+    STACK *const q = (STACK *const)malloc(sizeof(STACK));
+    const STACK &s = *p;
+    char route[80] = "\0";
+
+    /*if(argc){
+        strcpy(route, "C:\\Users\\tina\\Documents\\C\\U201514620_1\\bin\\Debug\\");
+        strcat(route, argv[1]);
+        strcat(route, ".txt");
+        file = fopen(route, "w+");
+    }*/
+    if(argc<=2) return 0;
+    for(i=1; i<argc; i++){
+        /*正常输入*/
+        if(*argv[i] == '-'){
+            argv[i]++;
+            /*初始栈功能S*/
+            if(*argv[i] == 'S'){
+                //不可重复出始化
+                if(inistack){
+                    //fprintf(file, "S  E");
+                    cout<<"S  E";
+                    break;
+                }
+                else{
+                    num = atoi(argv[++i]);   //根据输入得到要初始化的元素个数
+                    initSTACK(p, num);       //初始化栈
+                    inistack = 1;            //置栈初始化状态为成功
+                    //fprintf(file, "S  %d  ", num);
+                    cout<<"S  "<<num<<"  ";
+                }
+            }
+            /*入栈功能I*/
+            else if(*argv[i] == 'I'){
+                //栈初始化不成功
+                if(p->max == 0){
+                    //fprintf(file, "I  E");
+                    cout<<"I  E";
+                    break;
+                }
+                //栈满
+                else if(p->pos == p->max){
+                    //fprintf(file, "I  E");
+                    cout<<"I  E";
+                    break;
+                }
+                //展位初始化
+                else if(p == NULL){
+                    //fprintf(file, "I  E");
+                    cout<<"I  E";
+                    break;
+                }
+                //正常情况
+                else{
+                    //fprintf(file, "I  ");
+                    cout<<"I  ";
+                    for(; i<argc-1 && *argv[++i]!='-'; ){
+                        if(p->pos == p->max){
+                            //fprintf(file, "E");
+                            cout<<"E";
+                            state = 1;           //置入栈出错
+                            break;
+                        }
+                        else{
+                            element = atoi(argv[i]); //转换为数字
+                            push(p, element);        //元素入栈
+                        }
+                    }
+                    if(state) break;        //入栈出错，直接退出
+                    print(p);
+                    if(i==argc-1 && *argv[i]!='-') break;  //结束退出
+                    i--;
+                }
+            }
+            /*出栈*/
+            else if(*argv[i] == 'O'){
+                //正常情况
+                    num = atoi(argv[++i]); //获取出栈个数
+                    //出栈个数大于站内元素个数
+                    if(num > p->pos){
+                        //fprintf(file, "O  E");
+                        cout<<"O  E";
+                        break;
+                    }
+                    else{
+                        pop(p, num);
+                        //fprintf(file, "O  ");
+                        cout<<"O  ";
+                        print(p);
+                    }
+            }
+            /*为新栈赋值*/
+            else if(*argv[i] == 'A'){
+                num = atoi(argv[++i]);  //获取新栈大小
+                initSTACK(q, num);      //初始化新栈
+                assign(q, s);           //为新栈赋值
+                //fprintf(file, "A  ");
+                cout<<"A  ";
+                print(q);
+                //将控制权由老栈转换到新栈
+                free(p->elems);
+                *(int **)(&(p->elems)) = q->elems;
+                free(q->elems);
+            }
+            /*深度初始化新栈*/
+            else if(*argv[i] == 'C'){
+                //老栈未初始化
+                if(p == NULL){
+                    //fprintf(file, "C  E");
+                    cout<<"C  E";
+                    break;
+                }
+                //正常情况
+                else{
+                    initSTACK(q, s);
+                    //fprintf(file, "C  ");
+                    cout<<"C  ";
+                    print(q);
+                    //将控制权由老栈转换到新栈
+                    free(p->elems);
+                    *(int **)(&(p->elems)) = q->elems;
+                    free(q->elems);
+                }
+            }
+            /*输出总数*/
+            else if(*argv[i] == 'N'){
+                num = howMany(p);
+                //fprintf(file, "N  %d", num);
+                cout<<"N  "<<num;
+            }
+            else if(*argv[i] == 'G'){
+                num = atoi(argv[++i]);
+                if(num > p->pos){
+                    //fprintf(file, "G  E");
+                    cout<<"G  E";
+                }
+                else{
+                    element = getelem(p, num);
+                    //fprintf(file, "G  %d", element);
+                    cout<<"G  "<<element<<"  ";
+                }
+            }
+        }
+        /*非法输入*/
+        else{
+            //fprintf(file, "E");
+            cout<<"E";
+            break;
+        }
+    }
+
+    free(p->elems);
+    free(p);
+    free(q);
+    return 0;
+}
+/*功能函数*/
+/****************************************************************/
+/***************************栈初始化****************************/
+void initSTACK(STACK *const p, int m)
+{
+    p->elems = (int *)malloc(sizeof(int)*m);   //为栈申请空间
+    p->pos = 0;
+    if(p==NULL)  //若申请失败则令栈为空并输出E作为错误标识
+    {
+        p->max=0;
+        //fprintf(file, "S  E");
+        cout<<"S  E";
+    }
+    else         //申请成功就修改栈长
+        p->max=m;
+    return;
+}
+/****************************************************************/
+/***************************栈初始化****************************/
+void initSTACK(STACK *const p, const STACK &s)
+{
+    *(int **)(&(p->elems)) = (int *)malloc(sizeof(int)* (s.max));   //为栈申请空间，其大小与s所引用的栈一致
+    int *org = s.elems-s.pos;
+    int *des = p->elems;
+    *(int*)(&p->max) = s.max;
+    *(int*)(&p->pos) = s.pos;
+    for(int i=0; i<s.pos; i++, (des)++, org++)
+    //根据s应用的对象对栈进行初始化，并使栈指针指向栈顶
+        *(des) = *org;
+    *(int **)(&(p->elems)) = des;
+    return;
+}
+/****************************************************************/
+/****************************栈大小*****************************/
+int size(const STACK *const p)
+{
+    return p->max;
+}
+/****************************************************************/
+/****************************栈存储*****************************/
+int howMany(const STACK *const p)
+{
+    return p->pos;
+}
+/****************************************************************/
+/****************************栈查找*****************************/
+int getelem(const STACK* const p, int x)
+{
+    return *(p->elems-p->pos+x);
+}
+/****************************************************************/
+/*****************************入栈******************************/
+STACK *const push(STACK *const p, int e)
+{
+    *(p->elems) = e;    //e进栈，栈指针指向栈顶
+    p->elems++;
+    p->pos++;
+    return p;
+}
+/****************************************************************/
+/*****************************出栈******************************/
+STACK *const pop(STACK *const p, int &e)
+{
+    int i = e;
+    for( ; i>0; i--, p->pos--, p->elems--) ;
+    return p;
+}
+/****************************************************************/
+/***************************栈初始化****************************/
+STACK *const assign(STACK *const p, const STACK &s) //赋s给p
+{
+    if(p==NULL) //若p还未申请空间
+    {
+        //fprintf(file, "E");
+        cout<<"E";
+    }
+    else       //否则直接进行初始化
+    {
+        //改变原栈大小
+        if(p->max != s.max){
+            p->elems -= p->pos;
+            *(int **)(&(p->elems)) = (int* )realloc(p->elems, sizeof(int)*(s.max));
+        }
+        //为新栈赋值
+        int * org = s.elems - s.pos;
+        int * des = p->elems;
+        for(int i=0; i<s.pos; i++, des++, org++)
+            *(des)=*(org);
+        *(int **)(&(p->elems)) = des;
+        *(int*)(&p->max) = s.max;
+        *(int*)(&p->pos) = s.pos;
+    }
+    return p;
+}
+/****************************************************************/
+/*****************************输出******************************/
+void print(const STACK *const p)
+{
+    int i=0;
+    int *pint = p->elems - p->pos;
+        for(; i<p->pos; i++)
+            cout<<*(pint++)<<"  ";
+            //fprintf(file, "%d  ", *(pint++));
+}
+/****************************************************************/
+/*****************************销毁*******************************/
+void destroySTACK(STACK *const p)
+{
+    free(p->elems);
+    free(p);
+}
