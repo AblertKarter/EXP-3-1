@@ -1,0 +1,341 @@
+#include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+using namespace std;
+
+//对象定义
+/*栈*/
+class STACK{
+    int  *const  elems;	                    //申请内存用于存放栈的元素
+    const  int   max;	                    //栈能存放的最大元素个数
+    int   pos;			                    //栈实际已有元素个数，栈空时pos=0;
+public:
+STACK(int m);		                        //初始化栈：最多m个元素
+STACK(const STACK&s);                       //用栈s拷贝初始化栈
+virtual int  size ( ) const;		        //返回栈的最大元素个数max
+virtual operator int () const; 	            //返回栈的实际元素个数pos
+virtual int  operator[] (int x) const;	    //取下标x处的栈元素
+virtual STACK& operator<<(int e); 	        //将e入栈,并返回栈
+virtual STACK& operator>>(int &e);     	    //出栈到e,并返回栈
+virtual STACK& operator=(const STACK&s);    //赋s给栈,并返回被赋值的栈
+virtual void print( ) const;		        //打印栈
+virtual ~STACK( );				            //销毁栈
+};
+/*整型队列*/
+class QUEUE{
+    STACK s1, s2;                           //此处将s1作为入队列，s2做为出队列
+public:
+QUEUE(int m);                               //每个栈最多m个元素，要求实现的队列最多能入2m个元素
+QUEUE(const QUEUE&s); 			            //用队列s拷贝初始化队列
+virtual operator int ( ) const;			    //返回队列的实际元素个数
+virtual int full ( ) const;		            //返回队列是否已满，满返回1，否则返回0
+virtual int operator[ ](int x)const;        //取下标为x的元素,第1个元素下标为0
+virtual QUEUE& operator<<(int e); 	        //将e入队列,并返回队列
+virtual QUEUE& operator>>(int &e);	        //出队列到e,并返回队列
+virtual QUEUE& operator=(const QUEUE&s);    //赋s给队列,并返回被赋值的队列
+virtual void print( ) const;			    //打印队列
+virtual ~QUEUE( );					        //销毁队列
+};
+/***************************对于栈的操作**************************/
+/****************************栈的初始化***************************/
+STACK::STACK(int m):elems(new int[m]), max(m), pos(0){ }
+/***************************栈拷贝初始化**************************/
+STACK::STACK(const STACK&s):elems(new int[s.max]), max(s.max), pos(s.pos)
+{
+    int *porg = s.elems;         //用一个整型指针指向s的栈底
+    for( int i=0; i<pos; i++, porg++)
+        *(elems+i) = *porg;      //为元素逐一赋值
+}
+/**********************返回栈的最大元素个数max*******************/
+int  STACK::size ( ) const{ return max; }
+/**********************返回栈的实际元素个数pos********************/
+STACK::operator int () const{ return pos; }
+/************************取下标x处的栈元素************************/
+int STACK::operator[] (int x) const{ return *(elems + x); }
+/************************将e入栈,并返回栈*************************/
+STACK& STACK::operator<<(int e)
+{
+    *(elems+pos) = e;  //元素入栈
+    pos++;
+    return *this;
+}
+/************************出栈到e,并返回栈*************************/
+STACK& STACK::operator>>(int &e)
+{
+    pos -= e;       //元素出栈
+    return *this;
+}
+/********************赋s给栈,并返回被赋值的栈*********************/
+STACK& STACK::operator=(const STACK&s)
+{
+    int *porg = s.elems;
+    if(max != s.max){
+        delete elems;
+        *(int **)(&elems) = new int[s.max];
+    }
+    *(int *)(&max) = s.max;
+    pos = s.pos;
+    for(int i=0; i<pos; i++, porg++)
+        *(elems+i) = *porg;
+    return *this;
+}
+/******************************打印栈******************************/
+void STACK::print( ) const
+{
+    int *p = elems;
+    //输出元素
+    for(int i=0; i<pos; i++)
+        //fprintf(file, "%d  ", *(p++));
+        cout<<*(p++)<<"  ";
+}
+/******************************销毁栈******************************/
+STACK::~STACK( )
+{
+    if(elems){
+        delete elems;
+        *(int **)(&elems) = 0;
+    }
+}
+/**************************对于队列的操作*************************/
+/***************************队列的初始化**************************/
+QUEUE::QUEUE(int m):s1(m),s2(m){ }
+/***************************栈拷贝初始化**************************/
+QUEUE::QUEUE(const QUEUE&s):s1(s.s1), s2(s.s2){ }
+/*************************返回队列是否已满************************/
+int  QUEUE::full ( ) const
+{
+    return ((int(s2)&&(s1.size()==int(s1)))/*||(int(s1)+int(s2))==(2*s1.size()-1)*/);  //栈2非空且栈一存满
+}
+/***********************返回栈的实际元素个数**********************/
+QUEUE::operator int () const
+{
+    return (int(s1)+int(s2));
+}
+/************************取下标x处的栈元素************************/
+int QUEUE::operator[] (int x) const
+{
+    //对于总角标越界，即x>2m-1，在主函数中做出判断
+    if(!int(s2)){//如果s2为空
+        if(x<=s1) return s1[x];//若果下角表不越过如队列的界
+        else return -1;        //否则返回错误
+    }
+    else{//如果s2非空
+        if(x<=s2) return s2[s2-x-1]; //在出队列中
+        else return s1[x-s2];   //在入队列中
+    }
+}
+/*********************将e入栈队列,并返回队列**********************/
+QUEUE& QUEUE::operator<<(int e)
+{
+    int m = s1.size();
+    int k = 1;
+    int &j = k;
+    //由于已在主函数中判断过是否会出错，故在此只考虑无错情况
+    if(int(s1) == m) //若入队列满（不可能是出队列非空，否则主函数会处理掉）
+        for(int i=m-1; i>=0; i--){//将入队列中的元素依次出栈到出队列
+            s2<<s1[i];
+            s1>>j;
+        }
+    s1<<e; //将元素入队列
+    return *this;         //返回队列
+}
+/************************出栈到e,并返回栈*************************/
+QUEUE& QUEUE::operator>>(int &e)
+{
+    //由于已在主函数中判断过是否会出错，故在此只考虑无错情况
+    int m=e;
+    int k=1;
+    int &j = k;
+    if(e>s2){  //先清空出队列
+        m-=s2;
+        int n = int(s2);
+        int &l = n;
+        s2>>l;
+        for(int i=s1; i>0; i--){//将入队列中的元素依次出栈到出队列
+            s2<<s1[i-1];
+            s1>>j;
+        }
+    }
+    s2>>m;
+    return *this;
+}
+/********************赋s给栈,并返回被赋值的栈*********************/
+QUEUE& QUEUE::operator=(const QUEUE&s)
+{
+    /*若两个队列的长度不一致，则为对象重新赋值*/
+    if(int(*this) != int(s)){
+        delete &s1;
+        delete &s2;
+    }
+    const STACK &sa = s.s1;
+    const STACK &sb = s.s2;
+    s1 = sa;
+    s2 = sb;
+    return *this;
+}
+/******************************打印栈******************************/
+void QUEUE::print( ) const
+{
+    int i = s2;
+    if(i){ //出队列非空,打印出队列
+        for(i-=1; i>=0; i--)
+            //fprintf(file, "%d  ", (s2[i]));
+            cout<<s2[i]<<"  ";
+    }
+    for(i=0; i<s1; i++) //打印入队列
+        //fprintf(file, "%d  ", (s1[i]));
+        cout<<s1[i]<<"  ";
+    return;
+}
+/******************************销毁栈******************************/
+QUEUE::~QUEUE( )
+{
+    delete &s1;
+    delete &s2;
+}
+/******************************************************************/
+/******************************主函数******************************/
+int main(int argc, char **argv)
+{
+    int state = 0;   //入栈出错判断，0为正常，1为出错
+    int num;         //存放初始化需要的栈空间和出栈的数量
+    int element;     //存放输入的栈元素
+    int i;           //命令行计数器
+    int iniqueue = 0;//栈初始化判断，0为未初始，1为已经初始
+    char route[80] = "\0";
+    int position, maxnum;
+
+    /*if(argc){
+        strcpy(route, "C:\\Users\\tina\\Documents\\C\\U201514620_5\\");
+        strcat(route, argv[1]);
+        strcat(route, ".txt");
+        file = fopen(route, "w+");
+    }*/
+    if(argc<=2) return 0;
+
+    if(*argv[1] == '-'){
+        argv[1]++;
+        /*初始栈功能S*/
+        if(*argv[1] == 'S'){
+            //不可重复出始化
+            if(iniqueue)
+                //fprintf(file, "S  E");
+                cout<<"S  E";
+            else{
+                num = atoi(argv[2]);     //根据输入得到要初始化的元素个数
+                QUEUE p(num);            //初始化队列
+                const QUEUE &s = p;      //定义占领引用对象以备后用
+                iniqueue = 1;            //置栈初始化状态为成功
+                //fprintf(file, "S  %d  ", num);
+                cout<<"S  "<<num<<"  ";
+                for(i=3; i<argc; i++){
+                /*正常输入*/
+                    if(*argv[i] == '-'){
+                        argv[i]++;
+                        /*入栈功能I*/
+                        if(*argv[i] == 'I'){
+                            //队列满，队列初始化不成功导致存储空间为零时队列满的一种特殊情况
+                            if(p.full()){
+                                //fprintf(file, "I  E");
+                                cout<<"I  E";
+                                break;
+                            }
+                            //正常情况
+                            else{
+                                //fprintf(file, "I  ");
+                                cout<<"I  ";
+                                for(; i<argc-1 && *argv[++i]!='-'; ){
+                                    //考虑到有可能发生中途入栈出错
+                                    if(p.full()){
+                                        //fprintf(file, "E");
+                                        cout<<"E";
+                                        state = 1;               //置入队列出错
+                                        break;
+                                    }
+                                    else{
+                                        element = atoi(argv[i]); //转换为数字
+                                        p << element;            //元素入队列
+                                    }
+                                }
+                                if(state) break;                 //入栈出错，直接退出
+                                p.print();
+                                if(i==argc-1 && *argv[i]!='-') break;  //已到命令末尾，结束退出
+                                i--;
+                            }
+                        }
+                        /*出栈*/
+                        else if(*argv[i] == 'O'){
+                            num = atoi(argv[++i]); //获取出栈个数
+                            //队列中实际元素个数小于要出队列的元素个数
+                            if(int(p)<num){
+                                //fprintf(file, "O  E");
+                                cout<<"O  E";
+                                break;
+                            }
+                            //正常情况
+                            else{
+                                p >> num;
+                                //fprintf(file, "O  ");
+                                cout<<"O  ";
+                                p.print();
+                            }
+                        }
+                        /*为新栈赋值*/
+                        else if(*argv[i] == 'A'){
+                            num = atoi(argv[++i]);  //获取新队列大小
+                            QUEUE q(num);           //初始化新队列
+                            q = s;                  //为新队列赋值
+                            //fprintf(file, "A  ");
+                            cout<<"A  ";
+                            q.print();
+                            //将控制权由老栈转换到新栈
+                            const QUEUE &ep = q;
+                            p = ep;
+                            q.~QUEUE();
+                        }
+                        /*深度初始化新栈*/
+                        else if(*argv[i] == 'C'){
+                            QUEUE d(s);
+                            //fprintf(file, "C  ");
+                            cout<<"C  ";
+                            d.print();
+                            //将控制权由老栈转换到新栈
+                            const QUEUE &eq = d;
+                            p = eq;
+                            d.~QUEUE();
+                        }
+                        /*输出总数*/
+                        else if(*argv[i] == 'N'){
+                            num = p;
+                            //fprintf(file, "N  %d  ", num);
+                            cout<<"N  "<<num<<"  ";
+                        }
+                        /*输出第n个元素*/
+                        else if(*argv[i] == 'G'){
+                            num = atoi(argv[++i]);
+                            if(num>=p){
+                                cout<<"G  E";
+                                break;
+                            }
+                            if((element = p[num]) != -1){
+                                cout<<"G  "<<element<<"  ";
+                            }
+                            else{
+                                cout<<"G  E";
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        /*非法输入*/
+        else cout<<"E";
+    }
+    /*非法输入*/
+    else cout<<"E";
+    return 0;
+}
+
