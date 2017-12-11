@@ -1,0 +1,243 @@
+#include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+using namespace std;
+//对象定义
+class STACK{
+    int  *const  elems;	         //申请内存用于存放栈的元素
+    const  int   max;	         //栈能存放的最大元素个数
+    int   pos;			         //栈实际已有元素个数，栈空时pos=0;
+public:
+STACK(int m);		             //初始化栈：最多m个元素
+STACK(const STACK&s);            //用栈s拷贝初始化栈
+virtual int  size ( ) const;		     //返回栈的最大元素个数max
+virtual operator int () const; 	     //返回栈的实际元素个数pos
+virtual int  operator[] (int x) const;	     //取下标x处的栈元素
+virtual STACK& operator<<(int e); 	         //将e入栈,并返回栈
+virtual STACK& operator>>(int &e);     	     //出栈到e,并返回栈
+virtual STACK& operator=(const STACK&s);    //赋s给栈,并返回被赋值的栈
+virtual void print( ) const;		     //打印栈
+virtual ~STACK( );				         //销毁栈
+};
+
+/****************************栈的初始化***************************/
+STACK::STACK(int m):elems(new int[m]), max(m), pos(0){ }
+/***************************栈拷贝初始化**************************/
+STACK::STACK(const STACK&s):elems(new int[s.max]), max(s.max), pos(s.pos)
+{
+    int *porg = s.elems;         //用一个整型指针指向s的栈底
+    for( int i=0; i<pos; i++, porg++)
+        *(elems+i) = *porg;      //为元素逐一赋值
+}
+/***********************返回栈的最大元素个数max*******************/
+int  STACK::size ( ) const
+{
+    return max;
+}
+/**********************返回栈的实际元素个数pos********************/
+STACK::operator int () const
+{
+    return pos;
+}
+/************************取下标x处的栈元素************************/
+int STACK::operator[] (int x) const
+{
+    return *(elems + x);
+}
+/************************将e入栈,并返回栈*************************/
+STACK& STACK::operator<<(int e)
+{
+    *(elems+pos) = e;  //元素入栈
+    pos++;
+    return *this;
+}
+/************************出栈到e,并返回栈*************************/
+STACK& STACK::operator>>(int &e)
+{
+    pos -= e;       //元素出栈
+    return *this;
+}
+/********************赋s给栈,并返回被赋值的栈*********************/
+STACK& STACK::operator=(const STACK&s)
+{
+    int *porg = s.elems;
+    if(max != s.max){
+        delete elems;
+        *(int **)(&elems) = new int[s.max];
+    }
+    *(int *)(&max) = s.max;
+    pos = s.pos;
+    for(int i=0; i<pos; i++, porg++)
+        *(elems+i) = *porg;
+    return *this;
+}
+/******************************打印栈******************************/
+void STACK::print( ) const
+{
+    int *p = elems;
+    //输出元素
+        for(int i=0; i<pos; i++)
+            //fprintf(file, "%d  ", *(p++));
+            cout<<*(p++)<<"  ";
+}
+/******************************销毁栈******************************/
+STACK::~STACK( )
+{
+    if(elems){
+        delete elems;
+        *(int **)(&elems) = 0;
+    }
+}
+/******************************************************************/
+/******************************************************************/
+/******************************主函数******************************/
+int main(int argc, char **argv)
+{
+    int state = 0;   //入栈出错判断，0为正常，1为出错
+    int num;         //存放初始化需要的栈空间和出栈的数量
+    int element;     //存放输入的栈元素
+    int i;           //命令行计数器
+    int inistack = 0;//栈初始化判断，0为未初始，1为已经初始
+    //char route[80] = "\0";
+    int position, maxnum;
+
+    /*if(argc){
+        strcpy(route, "C:\\Users\\tina\\Documents\\C\\U201514620_3\\");
+        strcat(route, argv[1]);
+        strcat(route, ".txt");
+        file = fopen(route, "w+");
+    }*/
+    if(argc<=2) return 0;
+    if(*argv[1] == '-'){
+        argv[1]++;
+        /*初始栈功能S*/
+        if(*argv[1] == 'S'){
+            //不可重复出始化
+            if(inistack)
+                //fprintf(file, "S  E");
+                cout<<"S  E";
+            else{
+                num = atoi(argv[2]);     //根据输入得到要初始化的元素个数
+                STACK p(num);            //初始化栈
+                const STACK &s = p;      //定义占领引用对象以备后用
+                inistack = 1;            //置栈初始化状态为成功
+                //fprintf(file, "S  %d  ", num);
+                cout<<"S  "<<num<<"  ";
+                for(i=3; i<argc; i++){
+                /*正常输入*/
+                    if(*argv[i] == '-'){
+                        argv[i]++;
+                        /*入栈功能I*/
+                        if(*argv[i] == 'I'){
+                        position = p;    //获取栈中元素个数
+                        maxnum = p.size();         //获取栈中总元素个数
+                            //栈初始化不成功
+                            if(maxnum == 0){
+                                //fprintf(file, "I  E");
+                                cout<<"I  E";
+                                break;
+                            }
+                            //栈满
+                             else if(position == maxnum){
+                                 //fprintf(file, "I  E");
+                                 cout<<"I  E";
+                                 break;
+                            }
+                            //正常情况
+                            else{
+                                //fprintf(file, "I  ");
+                                cout<<"I  ";
+                                for(; i<argc-1 && *argv[++i]!='-'; ){
+                                    position = p;  //获取栈元素数量
+                                    if(position == maxnum){
+                                        //fprintf(file, "E");
+                                        cout<<"E";
+                                        state = 1;           //置入栈出错
+                                        break;
+                                    }
+                                    else{
+                                        element = atoi(argv[i]); //转换为数字
+                                        p << element;         //元素入栈
+                                    }
+                                }
+                                if(state) break;        //入栈出错，直接退出
+                                p.print();
+                                if(i==argc-1 && *argv[i]!='-') break;  //结束退出
+                                i--;
+                            }
+                        }
+                        /*出栈*/
+                        else if(*argv[i] == 'O'){
+                                num = atoi(argv[++i]); //获取出栈个数
+                                position = p;
+                                //出栈个数大于站内元素个数
+                                if(num > position){
+                                    //fprintf(file, "O  E");
+                                    cout<<"O  E";
+                                    break;
+                                }
+                                else{
+                                    p >> num;
+                                    //fprintf(file, "O  ");
+                                    cout<<"O  ";
+                                    p.print();
+                                }
+                        }
+                        /*为新栈赋值*/
+                        else if(*argv[i] == 'A'){
+                            num = atoi(argv[++i]);  //获取新栈大小
+                            STACK q(num);           //初始化新栈
+                            q = s;            //为新栈赋值
+                            //fprintf(file, "A  ");
+                            cout<<"A  ";
+                            q.print();
+                            //将控制权由老栈转换到新栈
+                            const STACK &ep = q;
+                            p = ep;
+                            q.~STACK();
+                        }
+                        /*深度初始化新栈*/
+                        else if(*argv[i] == 'C'){
+                            STACK d(s);
+                            //fprintf(file, "C  ");
+                            cout<<"C  ";
+                            d.print();
+                            //将控制权由老栈转换到新栈
+                            const STACK &eq = d;
+                            p = eq;
+                            d.~STACK();
+                        }
+                        /*输出总数*/
+                        else if(*argv[i] == 'N'){
+                            num = p;
+                            //fprintf(file, "N  %d", num);
+                            cout<<"N  "<<num;
+                        }
+                        /*输出第n个元素*/
+                        else if(*argv[i] == 'G'){
+                            position = p;
+                            num = atoi(argv[++i]);
+                            if(num > position){
+                                //fprintf(file, "G  E");
+                                cout<<"G  E";
+                            }
+                            else{
+                                element = p[num];
+                                //fprintf(file, "G  %d", element);
+                                cout<<"G  "<<element<<"  ";
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        /*非法输入*/
+        else cout<<"E";
+    }
+    /*非法输入*/
+    else cout<<"E";
+    return 0;
+}
+
