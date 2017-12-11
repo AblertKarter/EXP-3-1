@@ -1,0 +1,251 @@
+#include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+using namespace std;
+
+//对象定义
+class QUEUE{
+    int  *const  elems;	                  //申请内存用于存放队列的元素
+    const  int   max;	                  //elems能存放的最大元素个数
+    int   head, tail;		              //队列头和尾，队列空时head=tail;初始时head=tail=0
+public:
+QUEUE(int m);		                      //初始化循环队列：elems有m个元素
+QUEUE(const QUEUE&s); 			          //用队列s拷贝初始化队列
+virtual operator int ( ) const;			  //返回队列的实际元素个数
+virtual int full ( ) const;		          //返回队列是否已满，满返回1，否则返回0
+virtual int operator[ ](int x)const;      //取下标为x的元素,第1个元素下标为0
+virtual QUEUE& operator<<(int e); 	      //将e入队列,并返回队列
+virtual QUEUE& operator>>(int &e);	      //出队列到e,并返回队列
+virtual QUEUE& operator=(const QUEUE&s);  //赋s给队列,并返回被赋值的队列
+virtual void print( ) const;			  //打印队列
+virtual ~QUEUE( );					      //销毁队列
+};
+
+/****************************栈的初始化***************************/
+QUEUE::QUEUE(int m):elems(new int[m]), max(m), head(0), tail(0){ if(!elems) *(int *)(&max)=0;/*初始化不成功*/}
+/***************************栈拷贝初始化**************************/
+QUEUE::QUEUE(const QUEUE&s):elems(new int[s.max]), max(s.max), head(s.head), tail(s.tail)
+{
+    int i = head;
+    while((i%=(max))!=tail)  //为队列循环赋值
+        *(elems+i) = s[i++];
+}
+/*************************返返回队列是否已满**********************/
+int  QUEUE::full ( ) const
+{
+    return ((tail+1)%max == head);  //如果只相差一个元素，说明队列已满不能继续添加
+}
+/**********************返回栈的实际元素个数tail********************/
+QUEUE::operator int () const
+{
+    return (tail-head+max)%max;
+}
+/************************取下标x处的栈元素************************/
+int QUEUE::operator[] (int x) const
+{
+    //元素不在当前队列中，包括角标越界
+    if(x>max){
+        cout<<"G  E";
+        return -1;
+    }
+    else if((x>=tail)){
+        if(x<head){
+            cout<<"G  E";
+            return -1;
+        }
+        else
+            return *(elems + x);
+    }
+    //角标正常
+    else
+        return *(elems + x);
+}
+/************************将e入栈,并返回栈*************************/
+QUEUE& QUEUE::operator<<(int e)
+{
+    //由于已在主函数中判断过是否会出错，故在此只考虑无错情况
+    *(elems+tail) = e;    //将新元素加在队列的末尾
+    tail = (tail+1)%max;  //将尾重新定位
+    return *this;         //返回队列
+}
+/************************出栈到e,并返回栈*************************/
+QUEUE& QUEUE::operator>>(int &e)
+{
+    //由于已在主函数中判断过是否会出错，故在此只考虑无错情况
+    head = (head + e)%max;
+    return *this;
+}
+/********************赋s给栈,并返回被赋值的栈*********************/
+QUEUE& QUEUE::operator=(const QUEUE&s)
+{
+    /*若两个队列的长度不一致，则为对象重新赋值*/
+    if(max != s.max){
+        delete elems;
+        *(int **)(&elems) = new int[s.max];
+    }
+    *(int *)(&max) = s.max;
+    tail = s.tail;
+    head = s.head;
+    /*为对象元素赋值*/
+    int i = head;
+    while((i%=(max))!=tail)
+        *(elems+i) = s[i++];
+    return *this;
+}
+/******************************打印栈******************************/
+void QUEUE::print( ) const
+{
+    int i = head;
+    while((i%=(max))!=tail)  //当没有打印到尾部的时候
+        //fprintf(file, "%d  ", (elems[i++]));
+        cout<<elems[i++]<<"  ";
+    return;
+}
+/******************************销毁栈******************************/
+QUEUE::~QUEUE( )
+{
+    if(elems){
+        delete elems;
+        *(int **)(&elems) = 0;
+    }
+    *(int *)(&max) = 0;
+    tail = head = 0;
+}
+/******************************************************************/
+/******************************主函数******************************/
+int main(int argc, char **argv)
+{
+    int state = 0;   //入栈出错判断，0为正常，1为出错
+    int num;         //存放初始化需要的栈空间和出栈的数量
+    int element;     //存放输入的栈元素
+    int i;           //命令行计数器
+    int iniqueue = 0;//栈初始化判断，0为未初始，1为已经初始
+    //char route[80] = "\0";
+    int position, maxnum;
+
+    /*if(argc){
+        strcpy(route, "C:\\Users\\tina\\Documents\\C\\U201514620_4\\");
+        strcat(route, argv[1]);
+        strcat(route, ".txt");
+        file = fopen(route, "w+");
+    }*/
+    if(argc<=2) return 0;
+
+    if(*argv[1] == '-'){
+        argv[1]++;
+        /*初始栈功能S*/
+        if(*argv[1] == 'S'){
+            //不可重复出始化
+            if(iniqueue)
+                //fprintf(file, "S  E");
+                cout<<"S  E";
+            else{
+                num = atoi(argv[2]);     //根据输入得到要初始化的元素个数
+                QUEUE p(num);            //初始化栈
+                const QUEUE &s = p;      //定义占领引用对象以备后用
+                iniqueue = 1;            //置栈初始化状态为成功
+                //fprintf(file, "S  %d  ", num);
+                cout<<"S  "<<num<<"  ";
+                for(i=3; i<argc; i++){
+                /*正常输入*/
+                    if(*argv[i] == '-'){
+                        argv[i]++;
+                        /*入栈功能I*/
+                        if(*argv[i] == 'I'){
+                            //队列满，队列初始化不成功导致存储空间为零时队列满的一种特殊情况
+                            if(p.full()){
+                                //fprintf(file, "I  E");
+                                cout<<"I  E";
+                                break;
+                            }
+                            //正常情况
+                            else{
+                                //fprintf(file, "I  ");
+                                cout<<"I  ";
+                                for(; i<argc-1 && *argv[++i]!='-'; ){
+                                    //考虑到有可能发生中途入栈出错
+                                    if(p.full()){
+                                        //fprintf(file, "E");
+                                        cout<<"E";
+                                        state = 1;           //置入栈出错
+                                        break;
+                                    }
+                                    else{
+                                        element = atoi(argv[i]); //转换为数字
+                                        p << element;         //元素入栈
+                                    }
+                                }
+                                if(state) break;        //入栈出错，直接退出
+                                p.print();
+                                if(i==argc-1 && *argv[i]!='-') break;  //已到命令末尾，结束退出
+                                i--;
+                            }
+                        }
+                        /*出栈*/
+                        else if(*argv[i] == 'O'){
+                            num = atoi(argv[++i]); //获取出栈个数
+                            //队列中实际元素个数小于要出队列的元素个数
+                            if(int(p)<num){
+                                //fprintf(file, "O  E");
+                                cout<<"O  E";
+                                break;
+                            }
+                            //正常情况
+                            else{
+                                p >> num;
+                                //fprintf(file, "O  ");
+                                cout<<"O  ";
+                                p.print();
+                            }
+                        }
+                        /*为新栈赋值*/
+                        else if(*argv[i] == 'A'){
+                            num = atoi(argv[++i]);  //获取新栈大小
+                            QUEUE q(num);           //初始化新栈
+                            q = s;                  //为新栈赋值
+                            //fprintf(file, "A  ");
+                            cout<<"A  ";
+                            q.print();
+                            //将控制权由老栈转换到新栈
+                            const QUEUE &ep = q;
+                            p = ep;
+                            q.~QUEUE();
+                        }
+                        /*深度初始化新栈*/
+                        else if(*argv[i] == 'C'){
+                            QUEUE d(s);
+                            //fprintf(file, "C  ");
+                            cout<<"C  ";
+                            d.print();
+                            //将控制权由老栈转换到新栈
+                            const QUEUE &eq = d;
+                            p = eq;
+                            d.~QUEUE();
+                        }
+                        /*输出总数*/
+                        else if(*argv[i] == 'N'){
+                            num = p;
+                            cout<<"N  "<<num<<"  ";
+                        }
+                        /*输出第n个元素*/
+                        else if(*argv[i] == 'G'){
+                            num = atoi(argv[++i]);
+                            if((element = p[num]) != -1){
+                                cout<<"G  "<<element<<"  ";
+                            }
+                            else break;
+                        }
+                    }
+                }
+            }
+        }
+        /*非法输入*/
+        else cout<<"E";
+    }
+    /*非法输入*/
+    else cout<<"E";
+    return 0;
+}
+
